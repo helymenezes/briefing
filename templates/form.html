@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Briefing Levantamento de Automação</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <!-- Barra de navegação e busca -->
+    <div class="top-menu">
+      <div class="search-bar">
+        <form id="searchForm" action="/buscar" method="get">
+          <input type="text" id="numero_controle_busca" name="numero_controle" placeholder="Digite o número de controle" maxlength="8">
+          <button type="submit" class="search-btn">Buscar</button>
+        </form>
+      </div>
+      <div class="nav-buttons">
+        <a href="/listar" class="nav-btn">Ver Todos os Registros</a>
+        <a href="/" class="nav-btn">Novo Briefing</a>
+        {% if numero_controle %}
+        <span class="controle-info">Número de Controle: <strong>{{ numero_controle }}</strong></span>
+        {% if modo == 'visualizar' %}
+        <span class="modo-info">(Modo: Visualização)</span>
+        {% elif modo == 'editar' %}
+        <span class="modo-info">(Modo: Edição)</span>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    
+    <form id="briefingForm" action="{{ action_url|default('/submit') }}" method="post">
+      <!-- Campo oculto para o número de controle quando estiver editando -->
+      {% if numero_controle %}
+      <input type="hidden" id="numero_controle" name="numero_controle" value="{{ numero_controle }}">
+      {% endif %}
+      
+      <!-- Capa -->
+      <div class="cover">
+        <h1>AUTOMAÇÃO 100% BRASIL</h1>
+        <h2>Briefing Levantamento de Automação</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="cliente">CLIENTE:</label>
+        <input type="text" id="cliente" name="cliente" value="{{ cliente|default('') }}" required {% if modo == 'visualizar' %}readonly{% endif %}>
+
+        <label for="endereco">ENDEREÇO:</label>
+        <input type="text" id="endereco" name="endereco" value="{{ endereco|default('') }}" required {% if modo == 'visualizar' %}readonly{% endif %}>
+
+        <label for="telefone">TELEFONE:</label>
+        <input type="tel" id="telefone" name="telefone" value="{{ telefone|default('') }}" required {% if modo == 'visualizar' %}readonly{% endif %}>
+
+        <label for="email">E-MAIL:</label>
+        <input type="email" id="email" name="email" value="{{ email|default('') }}" required {% if modo == 'visualizar' %}readonly{% endif %}>
+      </div>
+
+      <h2 class="section-title">1. PERFIL DO CLIENTE</h2>
+      <div class="form-group">
+        <label for="familia">Qual a composição da família?</label>
+        <textarea id="familia" name="familia" rows="3" {% if modo == 'visualizar' %}readonly{% endif %}>{{ familia|default('') }}</textarea>
+      </div>
+      <div class="form-group">
+        <label for="expectativas">Expectativas e desejos:</label>
+        <textarea id="expectativas" name="expectativas" rows="3" {% if modo == 'visualizar' %}readonly{% endif %}>{{ expectativas|default('') }}</textarea>
+      </div>
+      <div class="form-group">
+        <label for="preocupacoes">Principais preocupações dos clientes:</label>
+        <textarea id="preocupacoes" name="preocupacoes" rows="3" {% if modo == 'visualizar' %}readonly{% endif %}>{{ preocupacoes|default('') }}</textarea>
+      </div>
+
+      <h2 class="section-title">2. INFORMAÇÕES INICIAIS</h2>
+      <div class="form-group">
+        <label class="form-label">Situação do imóvel:</label>
+        <div class="radio-group">
+          <label><input type="radio" name="situacao" value="Em projeto" {% if situacao == 'Em projeto' %}checked{% endif %} required {% if modo == 'visualizar' %}disabled{% endif %}> Em projeto</label>
+          <label><input type="radio" name="situacao" value="Em obra" {% if situacao == 'Em obra' %}checked{% endif %} {% if modo == 'visualizar' %}disabled{% endif %}> Em obra</label>
+          <label><input type="radio" name="situacao" value="Em reforma" {% if situacao == 'Em reforma' %}checked{% endif %} {% if modo == 'visualizar' %}disabled{% endif %}> Em reforma</label>
+          <label><input type="radio" name="situacao" value="Pronto" {% if situacao == 'Pronto' %}checked{% endif %} {% if modo == 'visualizar' %}disabled{% endif %}> Pronto</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="area">Área construída do imóvel (m²):</label>
+        <input type="number" id="area" name="area" min="1" value="{{ area|default('') }}" required {% if modo == 'visualizar' %}readonly{% endif %}>
+      </div>
+
+      <h2 class="section-title">3. DEMANDAS DE PROJETOS</h2>
+      <div class="form-group">
+          <label class="form-label">Elaborar projeto de infraestrutura:</label>
+          <div class="checkbox-group">
+              <label><input type="checkbox" name="demanda_eletrico" value="Sim"> Elétrico</label><br>
+              <label><input type="checkbox" name="demanda_automacao" value="Sim"> Automação</label><br>
+              <label><input type="checkbox" name="demanda_audio_video" value="Sim"> Áudio e Vídeo</label><br>
+              <label><input type="checkbox" name="demanda_alarme" value="Sim"> Alarme</label><br>
+              <label><input type="checkbox" name="demanda_monitoramento" value="Sim"> Monitoramento</label><br>
+              <label><input type="checkbox" name="demanda_fotovoltaico" value="Sim"> Sistema Fotovoltaico</label><br>
+              <label><input type="checkbox" name="demanda_outro_check" value="Sim"> Outro: <input type="text" name="demanda_outro_texto" style="width: auto; margin-left: 5px; padding: 5px; font-size: 0.9em;"></label>
+          </div>
+      </div>
+
+      <h2 class="section-title">4. LEVANTAMENTO</h2>
+
+      <!-- Função para gerar a estrutura de um ambiente -->
+      <script>
+        function criarEstruturaAmbiente(nome, prefixo, camposEspeciais = []) {
+          let html = `
+            <div class="ambiente">
+              <h3>
+                ${nome}
+                <span class="ambiente-options">
+                  <label><input type="radio" name="${prefixo}_tipo" value="Convencional" onclick="toggleAmbienteDetails('${prefixo}', true)" required> Convencional</label>
+                  <label><input type="radio" name="${prefixo}_tipo" value="Não tem" onclick="toggleAmbienteDetails('${prefixo}', false)" required> Não tem</label>
+                </span>
+              </h3>
+              <div class="ambiente-details" id="details-${prefixo}">
+                <div class="form-group-inline">
+                  <label>Circuitos de iluminação (Qtde):</label>
+                  <div class="input-group">
+                    <input type="number" name="${prefixo}_iluminacao_qtde" min="0">
+                    <div class="radio-options">
+                      <label><input type="radio" name="${prefixo}_iluminacao_modo" value="Integrar"> Integrar</label>
+                      <label><input type="radio" name="${prefixo}_iluminacao_modo" value="Apenas Infra"> Apenas Infra</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group-inline">
+                  <label>Tomadas comandadas (Qtde):</label>
+                  <div class="input-group">
+                    <input type="number" name="${prefixo}_tomadas_qtde" min="0">
+                    <div class="radio-options">
+                      <label><input type="radio" name="${prefixo}_tomadas_modo" value="Integrar"> Integrar</label>
+                      <label><input type="radio" name="${prefixo}_tomadas_modo" value="Apenas Infra"> Apenas Infra</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group-inline">
+                  <label>Assistente de Voz:</label>
+                  <div class="input-group">
+                    <div class="radio-options">
+                      <label><input type="radio" name="${prefixo}_assistente_voz" value="Sim"> Sim, qual? <input type="text" name="${prefixo}_assistente_voz_modelo"></label>
+                      <label><input type="radio" name="${prefixo}_assistente_voz" value="Não tem"> Não tem</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ar condicionado:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_ar_condicionado" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_ar_condicionado" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_ar_condicionado" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_ar_condicionado_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">TV:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_tv" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_tv" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_tv" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_tv_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Sonorização:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_sonorizacao" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_sonorizacao" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_sonorizacao" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_sonorizacao_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Janela Motorizada:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_janela_motorizada" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_janela_motorizada" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_janela_motorizada" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_janela_motorizada_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Cortina Motorizada:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_cortina_motorizada" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_cortina_motorizada" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_cortina_motorizada" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_cortina_motorizada_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Outros sistemas:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_outros_sistemas" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_outros_sistemas" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_outros_sistemas" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_outros_sistemas_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+          `;
+
+          // Adiciona campos especiais
+          camposEspeciais.forEach(campo => {
+            if (campo.tipo === 'biometria') {
+              html += `
+                <div class="form-group">
+                  <label class="form-label">Acesso biometria (ou similar):</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_biometria" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_biometria" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_biometria" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_biometria_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+              `;
+            } else if (campo.tipo === 'irrigacao') {
+              html += `
+                <div class="form-group">
+                  <label class="form-label">Irrigação:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_irrigacao" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_irrigacao" value="Stand Alone"> Stand Alone</label>
+                    <label><input type="radio" name="${prefixo}_irrigacao" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_irrigacao_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+              `;
+            } else if (campo.tipo === 'portao') {
+              html += `
+                <div class="form-group">
+                  <label class="form-label">Portão Eletrônico:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="${prefixo}_portao" value="Integrar"> Integrar</label>
+                    <label><input type="radio" name="${prefixo}_portao" value="Apenas Infra"> Apenas Infra</label>
+                    <label><input type="radio" name="${prefixo}_portao" value="Não tem"> Não tem</label>
+                  </div>
+                  <label class="obs-label">Quantidade, modelo, obs:</label>
+                  <textarea name="${prefixo}_portao_obs" rows="2" class="obs-textarea"></textarea>
+                </div>
+              `;
+            }
+          });
+
+          html += `
+                <div class="form-group">
+                  <label for="${prefixo}_notas">Notas:</label>
+                  <textarea id="${prefixo}_notas" name="${prefixo}_notas" rows="3"></textarea>
+                </div>
+              </div> <!-- Fim ambiente-details -->
+            </div> <!-- Fim ambiente -->
+          `;
+          document.write(html);
+        }
+
+        function toggleAmbienteDetails(prefixo, show) {
+          const detailsDiv = document.getElementById(`details-${prefixo}`);
+          if (detailsDiv) {
+            detailsDiv.style.display = show ? 'block' : 'none';
+          }
+        }
+      </script>
+
+      <!-- Gerando os ambientes dinamicamente -->
+      <script>
+        criarEstruturaAmbiente('ESCRITÓRIO', 'escritorio');
+        criarEstruturaAmbiente('ESTAR ÍNTIMO', 'estar_intimo');
+        criarEstruturaAmbiente('ÁREA EXTERNA (ÁREA DE LAZER/FUNDOS)', 'area_externa_lazer');
+        criarEstruturaAmbiente('ÁREA GOURMET', 'area_gourmet');
+        criarEstruturaAmbiente('SALA DE JANTAR', 'sala_jantar');
+        criarEstruturaAmbiente('COZINHA', 'cozinha');
+        criarEstruturaAmbiente('SALA DE ESTAR/HALL DE ENTRADA', 'sala_estar_hall', [{tipo: 'biometria'}]);
+        criarEstruturaAmbiente('ÁREA EXTERNA (FACHADA)', 'area_externa_fachada', [{tipo: 'irrigacao'}]);
+        criarEstruturaAmbiente('GARAGEM', 'garagem', [{tipo: 'portao'}]);
+        criarEstruturaAmbiente('HOME THEATER', 'home_theater');
+        criarEstruturaAmbiente('QUARTO 01', 'quarto01');
+        criarEstruturaAmbiente('QUARTO 02', 'quarto02');
+        criarEstruturaAmbiente('QUARTO 03', 'quarto03');
+        criarEstruturaAmbiente('SUÍTE QUARTO 01', 'suite_quarto01');
+        criarEstruturaAmbiente('SUÍTE QUARTO 02', 'suite_quarto02');
+        criarEstruturaAmbiente('SUÍTE QUARTO 03', 'suite_quarto03');
+        criarEstruturaAmbiente('BANHEIRO SOCIAL/LAVABO', 'banheiro_social_lavabo');
+        criarEstruturaAmbiente('ÁREA DE SERVIÇO', 'area_servico');
+        criarEstruturaAmbiente('ÁREAS DE CIRCULAÇÃO', 'areas_circulacao');
+      </script>
+
+      <h2 class="section-title">5. PROJETOS RELACIONADOS</h2>
+      <div class="form-group">
+        <label class="form-label">Projeto Arquitetônico:</label>
+        <div class="radio-group">
+          <label><input type="radio" name="projeto_arquitetonico" value="Não tem"> Não tem</label>
+          <label><input type="radio" name="projeto_arquitetonico" value="Em andamento"> Em andamento</label>
+          <label><input type="radio" name="projeto_arquitetonico" value="Pronto"> Pronto</label>
+        </div>
+        <label for="arquiteto_contato">Nome e contato do(a) arquiteto(a):</label>
+        <input type="text" id="arquiteto_contato" name="arquiteto_contato">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Projeto Lumiotécnico:</label>
+        <div class="radio-group">
+          <label><input type="radio" name="projeto_lumiotecnico" value="Não tem"> Não tem</label>
+          <label><input type="radio" name="projeto_lumiotecnico" value="Em andamento"> Em andamento</label>
+          <label><input type="radio" name="projeto_lumiotecnico" value="Pronto"> Pronto</label>
+        </div>
+        <label for="lumiotecnico_contato">Nome e contato do(a) projetista:</label>
+        <input type="text" id="lumiotecnico_contato" name="lumiotecnico_contato">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Projeto Elétrico:</label>
+        <div class="radio-group">
+          <label><input type="radio" name="projeto_eletrico" value="Não tem"> Não tem</label>
+          <label><input type="radio" name="projeto_eletrico" value="Em andamento"> Em andamento</label>
+          <label><input type="radio" name="projeto_eletrico" value="Pronto"> Pronto</label>
+        </div>
+        <label for="eletrico_contato">Nome e contato do(a) projetista:</label>
+        <input type="text" id="eletrico_contato" name="eletrico_contato">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Automação pré-existente:</label>
+        <div class="radio-group">
+          <label><input type="radio" name="automacao_pre_existente" value="Apenas projeto"> Apenas projeto</label>
+          <label><input type="radio" name="automacao_pre_existente" value="Em andamento"> Em andamento</label>
+          <label><input type="radio" name="automacao_pre_existente" value="Pronto"> Pronto</label>
+          <label><input type="radio" name="automacao_pre_existente" value="Não tem"> Não tem</label> <!-- Adicionado Não tem -->
+        </div>
+        <label for="automacao_empresa_anterior">Nome e contato da empresa anterior:</label>
+        <input type="text" id="automacao_empresa_anterior" name="automacao_empresa_anterior">
+      </div>
+
+      <h2 class="section-title">6. RESUMO (CIRCUITOS E EQUIPAMENTOS)</h2>
+      <div class="form-group">
+        <label for="total_circ_auto">Circuitos de iluminação Automatizados:</label>
+        <input type="number" id="total_circ_auto" name="total_circ_auto" min="0">
+      </div>
+      <div class="form-group">
+        <label for="total_circ_pre_auto">Circuitos de iluminação Pré-Automatizados:</label>
+        <input type="number" id="total_circ_pre_auto" name="total_circ_pre_auto" min="0">
+      </div>      <div class="buttons">
+        {% if modo == 'visualizar' %}
+        <a href="/editar/{{ numero_controle }}" class="button-link">Editar Briefing</a>
+        <a href="/imprimir_pdf/{{ numero_controle }}" class="button-link">Gerar PDF / Imprimir</a>
+        <a href="/listar" class="button-link">Voltar para Lista</a>
+        {% elif modo == 'editar' %}
+        <button type="submit" name="action" value="salvar">Salvar Alterações</button>
+        <button type="submit" name="action" value="imprimir">Salvar e Gerar PDF</button>
+        <a href="/visualizar/{{ numero_controle }}" class="button-link">Cancelar Edição</a>
+        {% else %}
+        <button type="submit" name="action" value="salvar">Salvar Briefing</button>
+        <button type="submit" name="action" value="imprimir">Gerar PDF / Imprimir</button>
+        {% endif %}
+      </div>
+
+      <!-- Script para desabilitar o formulário no modo de visualização -->
+      {% if modo == 'visualizar' %}
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          // Previne o envio do formulário no modo visualização
+          document.getElementById('briefingForm').onsubmit = function(e) {
+            e.preventDefault();
+            return false;
+          };
+        });
+      </script>
+      {% endif %}
+    </form>
+  </div>
+
+  <script>
+    // Inicializa os detalhes dos ambientes com base nos valores
+    document.addEventListener('DOMContentLoaded', function() {
+      // Para cada ambiente, verifica se é convencional e mostra/esconde os detalhes
+      const ambientes = [
+        'escritorio', 'estar_intimo', 'area_externa_lazer', 'area_gourmet', 
+        'sala_jantar', 'cozinha', 'sala_estar_hall', 'area_externa_fachada', 
+        'garagem', 'home_theater', 'quarto01', 'quarto02', 'quarto03', 
+        'suite_quarto01', 'suite_quarto02', 'suite_quarto03', 
+        'banheiro_social_lavabo', 'area_servico', 'areas_circulacao'
+      ];
+      
+      ambientes.forEach(function(ambiente) {
+        const tipoConvencional = document.querySelector(`input[name="${ambiente}_tipo"][value="Convencional"]`);
+        const tipoNaoTem = document.querySelector(`input[name="${ambiente}_tipo"][value="Não tem"]`);
+        
+        if (tipoConvencional && tipoConvencional.checked) {
+          toggleAmbienteDetails(ambiente, true);
+        } else if (tipoNaoTem && tipoNaoTem.checked) {
+          toggleAmbienteDetails(ambiente, false);
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
+

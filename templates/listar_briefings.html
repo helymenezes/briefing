@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Briefings - AUTOMAÇÃO 100% BRASIL</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* Estilos específicos para a listagem */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    
+    thead {
+      background-color: #162950;
+      color: white;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    tbody tr:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+    
+    .action-btn {
+      padding: 6px 10px;
+      border-radius: 4px;
+      text-decoration: none;
+      text-align: center;
+      font-size: 0.8em;
+    }
+    
+    .view-btn {
+      background-color: #162950;
+      color: white;
+    }
+    
+    .edit-btn {
+      background-color: #FBE18E;
+      color: #333;
+    }
+    
+    .delete-btn {
+      background-color: #ff6b6b;
+      color: white;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 30px;
+    }
+    
+    .page-btn {
+      padding: 5px 10px;
+      border: 1px solid #162950;
+      background-color: white;
+      color: #162950;
+      border-radius: 4px;
+      text-decoration: none;
+    }
+    
+    .page-btn.active {
+      background-color: #162950;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Menu superior para busca e navegação -->
+    <div class="top-menu">
+      <div class="search-bar">
+        <form id="searchForm" action="/buscar" method="get">
+          <input type="text" id="numero_controle" name="numero_controle" placeholder="Digite o número de controle" maxlength="8">
+          <button type="submit" class="search-btn">Buscar</button>
+        </form>
+      </div>
+      <div class="nav-buttons">
+        <a href="/listar" class="nav-btn">Ver Todos os Registros</a>
+        <a href="/" class="nav-btn">Novo Briefing</a>
+      </div>
+    </div>
+
+    <!-- Cabeçalho -->
+    <div class="cover">
+      <h1>AUTOMAÇÃO 100% BRASIL</h1>
+      <h2>Lista de Briefings Cadastrados</h2>
+    </div>
+
+    <!-- Tabela de Registros -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nº Controle</th>
+            <th>Data</th>
+            <th>Cliente</th>
+            <th>Situação</th>
+            <th>Área (m²)</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for briefing in briefings %}
+          <tr>
+            <td>{{ briefing.numero_controle }}</td>
+            <td>{{ briefing.data_criacao.strftime('%d/%m/%Y') }}</td>
+            <td>{{ briefing.cliente }}</td>
+            <td>{{ briefing.situacao }}</td>
+            <td>{{ briefing.area }} m²</td>
+            <td class="action-buttons">
+              <a href="/visualizar/{{ briefing.numero_controle }}" class="action-btn view-btn">Visualizar</a>
+              <a href="/editar/{{ briefing.numero_controle }}" class="action-btn edit-btn">Editar</a>
+              <a href="/excluir/{{ briefing.numero_controle }}" class="action-btn delete-btn" onclick="return confirm('Tem certeza que deseja excluir este briefing?')">Excluir</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center;">Nenhum briefing encontrado</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+      {% if page > 1 %}
+      <a href="/listar?page=1" class="page-btn">&laquo; Primeira</a>
+      <a href="/listar?page={{ page - 1 }}" class="page-btn">&lt; Anterior</a>
+      {% endif %}
+      
+      {% for i in range(max(1, page - 2), min(page + 3, total_pages + 1)) %}
+      <a href="/listar?page={{ i }}" class="page-btn {% if i == page %}active{% endif %}">{{ i }}</a>
+      {% endfor %}
+      
+      {% if page < total_pages %}
+      <a href="/listar?page={{ page + 1 }}" class="page-btn">Próxima &gt;</a>
+      <a href="/listar?page={{ total_pages }}" class="page-btn">Última &raquo;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="buttons">
+      <a href="/" class="nav-btn">Novo Briefing</a>
+    </div>
+  </div>
+</body>
+</html>
