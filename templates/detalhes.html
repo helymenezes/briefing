@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhes do Registro</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="cover">
+      <h1>Detalhes do Briefing</h1>
+    </div>
+    {% if registro %}
+    <div class="section">
+      <p><strong>ID:</strong> {{ registro[0] }}</p>
+      <p><strong>Número de Controle:</strong> {{ registro[1] }}</p>
+      <p><strong>Cliente:</strong> {{ registro[2] }}</p>
+      <p><strong>Endereço:</strong> {{ registro[3] }}</p>
+      <p><strong>Telefone:</strong> {{ registro[4] }}</p>
+      <p><strong>E-mail:</strong> {{ registro[5] }}</p>
+      <p><strong>Família:</strong> {{ registro[6] }}</p>
+      <p><strong>Expectativas:</strong> {{ registro[7] }}</p>
+      <p><strong>Preocupações:</strong> {{ registro[8] }}</p>
+      <p><strong>Situação:</strong> {{ registro[9] }}</p>
+      <p><strong>Área:</strong> {{ registro[10] }} m²</p>
+      <p><strong>Data:</strong> {{ registro[11] }}</p>
+    </div>
+    {% else %}
+    <p>Registro não encontrado.</p>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for
+from flask import Flask, render_template, request, send_file, redirect, url_for, session, abort, make_response
 import sqlite3
 import pdfkit
 import os
@@ -61,6 +61,49 @@ def processar_ambiente(prefixo):
     return dados
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')
+
+
+def require_admin():
+    """Require basic auth for sensitive routes if configured."""
+    admin_user = os.environ.get('ADMIN_USER')
+    admin_password = os.environ.get('ADMIN_PASSWORD')
+    if not admin_user or not admin_password:
+        return None
+    auth = request.authorization
+    if not auth or auth.username != admin_user or auth.password != admin_password:
+        response = make_response('Autenticação necessária.', 401)
+        response.headers['WWW-Authenticate'] = 'Basic realm="Admin"'
+        return response
+    return None
+
+
+def generate_csrf_token():
+    token = session.get('csrf_token')
+    if not token:
+        token = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
+        session['csrf_token'] = token
+    return token
+
+
+def validate_csrf():
+    token = session.get('csrf_token')
+    form_token = request.form.get('csrf_token')
+    if not token or not form_token or token != form_token:
+        abort(400, description='Token CSRF inválido.')
+
+
+def validate_required_fields(data):
+    required_fields = ['cliente', 'endereco', 'telefone', 'email', 'situacao', 'area']
+    missing = [field for field in required_fields if not data.get(field)]
+    if missing:
+        abort(400, description=f"Campos obrigatórios ausentes: {', '.join(missing)}")
+    try:
+        area_value = float(data.get('area', 0))
+        if area_value <= 0:
+            abort(400, description='Área deve ser maior que zero.')
+    except ValueError:
+        abort(400, description='Área inválida.')
 
 # Configuração do pdfkit - atualize este caminho após instalar o wkhtmltopdf
 WKHTMLTOPDF_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
@@ -81,11 +124,12 @@ except Exception as e:
 # Rota para exibir o formulário
 @app.route('/')
 def form():
-    return render_template('form.html', modo="novo")
+    return render_template('form.html', modo="novo", csrf_token=generate_csrf_token())
 
 # Rota para processar o formulário
 @app.route('/submit', methods=['POST'])
 def submit():
+    validate_csrf()
     action = request.form.get('action')
     
     # Dados do cliente (capa)
@@ -102,6 +146,14 @@ def submit():
     # Informações iniciais
     situacao = request.form.get('situacao', '')
     area = request.form.get('area', '')
+    validate_required_fields({
+        'cliente': cliente,
+        'endereco': endereco,
+        'telefone': telefone,
+        'email': email,
+        'situacao': situacao,
+        'area': area,
+    })
       # Processamento dos ambientes
     ambientes = {
         'escritorio': processar_ambiente('escritorio'),
@@ -523,6 +575,7 @@ def visualizar(numero_controle):
     return render_template('form.html',
                           modo="visualizar",
                           numero_controle=numero_controle,
+                          csrf_token=generate_csrf_token(),
                           cliente=briefing.get('cliente', ''),
                           endereco=briefing.get('endereco', ''),
                           telefone=briefing.get('telefone', ''),
@@ -539,6 +592,9 @@ def visualizar(numero_controle):
 # Rota para editar um briefing
 @app.route('/editar/<numero_controle>')
 def editar(numero_controle):
+    auth_response = require_admin()
+    if auth_response:
+        return auth_response
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -605,6 +661,7 @@ def editar(numero_controle):
                           modo="editar",
                           action_url=action_url,
                           numero_controle=numero_controle,
+                          csrf_token=generate_csrf_token(),
                           cliente=briefing.get('cliente', ''),
                           endereco=briefing.get('endereco', ''),
                           telefone=briefing.get('telefone', ''),
@@ -621,6 +678,9 @@ def editar(numero_controle):
 # Rota para excluir um briefing
 @app.route('/excluir/<numero_controle>')
 def excluir(numero_controle):
+    auth_response = require_admin()
+    if auth_response:
+        return auth_response
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     
@@ -647,6 +707,10 @@ def excluir(numero_controle):
 # Rota para atualizar um briefing existente
 @app.route('/atualizar/<numero_controle>', methods=['POST'])
 def atualizar(numero_controle):
+    auth_response = require_admin()
+    if auth_response:
+        return auth_response
+    validate_csrf()
     # Buscar o briefing_id a partir do numero_controle
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -671,6 +735,14 @@ def atualizar(numero_controle):
     
     situacao = request.form.get('situacao', '')
     area = request.form.get('area', '')
+    validate_required_fields({
+        'cliente': cliente,
+        'endereco': endereco,
+        'telefone': telefone,
+        'email': email,
+        'situacao': situacao,
+        'area': area,
+    })
     
     # Processar ambientes
     ambientes = {
