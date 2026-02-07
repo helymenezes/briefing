@@ -18,6 +18,7 @@ def reconstruir_banco():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS briefing (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            numero_controle TEXT UNIQUE,
             cliente TEXT,
             endereco TEXT,
             telefone TEXT,

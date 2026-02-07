@@ -31,6 +31,7 @@
     </div>
     
     <form id="briefingForm" action="{{ action_url|default('/submit') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <!-- Campo oculto para o número de controle quando estiver editando -->
       {% if numero_controle %}
       <input type="hidden" id="numero_controle" name="numero_controle" value="{{ numero_controle }}">
@@ -402,4 +403,3 @@
 
 </body>
 </html>
-
