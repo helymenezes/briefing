@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registros</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="cover">
+      <h1>Registros</h1>
+      <h2>Briefings cadastrados</h2>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nº Controle</th>
+            <th>Cliente</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for registro in registros %}
+          <tr>
+            <td>{{ registro[0] }}</td>
+            <td>{{ registro[1] }}</td>
+            <td>{{ registro[2] }}</td>
+            <td>{{ registro[11] }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align: center;">Nenhum registro encontrado</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

@@ -27,7 +27,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-c    margin-bottom: 20px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 10px;
 }
@@ -442,4 +442,3 @@ input[disabled] + span, input[type="radio"][disabled] + label {
         margin: 5px 0;
     }
 }
-
